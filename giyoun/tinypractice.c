@@ -5,14 +5,18 @@
 
 #include "csapp.h"
 
-void doit(int fd);
-void read_requesthdrs(rio_t *rp);
-int parse_uri(char* uri, char *filename, char* cgiargs);
-void serve_static(int fd, char* filename, int filesize);
-void get_filetype(char* filename, char *filetype);
-void serve_dynamic(int fd, char* filename, char* cgiargs);
-void clienterror(int fd, char* cause, char* errnum, char* shortmsg, char* longmsg);
+void doit(int fd);  // 한개의 HTTP 트랜잭션을 처리
+void read_requesthdrs(rio_t *rp); // 요청 헤더 내의 어떤 정보도 사용하지 않는다. 읽고 무시
+int parse_uri(char* uri, char *filename, char* cgiargs); // URI를 파일 이름과 옵셥으로 CGI 인자 스트링을 분석, 정적 or 동적?
+void serve_static(int fd, char* filename, int filesize); // static content type 지역 파일 내용 포함 본체를 HTTP 응답을 보낸다.
+void get_filetype(char* filename, char *filetype);      // 파일 타입 받기 (get method만 받는다.)
+void serve_dynamic(int fd, char* filename, char* cgiargs);      // fork,  CGI 프로그램을 자식의 컨텍스트에서 실행하며 모든 종류의 동적 컨텐츠를 제공
+void clienterror(int fd, char* cause, char* errnum, char* shortmsg, char* longmsg);  // 일부 명백한 에어 체크 및 클라이언트에게 보고
 
+
+// Tiny는 반복실행 서버로 명령줄에서 넘겨받은 포트로의 연결 요청을 듣는다.
+// open_listenfd 함수를 호출해서 듣기 소켓을 오픈한 후에, TINY는 전형적인 무한 서버 루프를 실행하고, 반복적으로 연결 요청을 접수하고,
+// 트랜잭션을 수행하고 자신 쪽의 연결 끝을 닫는다. 
 int main(int argc, char** argv)
 {
     int listenfd, connfd;
@@ -50,7 +54,7 @@ void doit(int fd)
     Rio_readinitb(&rio, fd);
     Rio_readlineb(&rio, buf, MAXLINE);
     printf("Request headers:\n");
-    printf("%s", but);
+    printf("%s", buf);
     sscanf(buf, "%s %s %s", method, uri, version);
     if(strcasecmp(method, "GET")){ // 만일 클라이언트가 GET 이 아닌 다른 메소드를 요청하면 에러메시지를 보내고 main루틴으로 돌아온다.
         clienterror(fd, method, "501", "Not implemented", "Tiny dose not implement this method");
@@ -122,7 +126,7 @@ int parse_uri(char* uri, char* filename, char* cgiargs)
 {
     char *ptr;
 
-    if (!strstsr(uri, "cgi-bin")) { /* Static content*/ // 만일 요청이 정적컨첸츠를 위한 것이라면
+    if (!strstr(uri, "cgi-bin")) { /* Static content*/ // 만일 요청이 정적컨첸츠를 위한 것이라면
         strcpy(cgiargs, "");     // cgi 인자 스트링을 지운다.
         strcpy(filename, ".");      // ./index.html 같은 상대 리눅스 경로이름으로 변환한다.
         strcat(filename, uri);        
@@ -157,7 +161,7 @@ void serve_static(int fd, char* filename, int filesize)
     sprintf(buf, "%sConnection: close\r\n", buf);
     sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
     sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
-    Rio_writen(bf, buf, strlen(buf));
+    Rio_writen(fd, buf, strlen(buf));
     printf("Response headers:\n");
     printf("%s", buf);
 
@@ -197,7 +201,7 @@ void serve_dynamic(int fd, char* filename, char* cgiargs){
     sprintf(buf, "Server: Tiny Web server\r\n");
     Rio_writen(fd, buf, strlen(buf));
 
-    if (Fork() == 0 { /* Child */   // 새로운 자식 프로세스를 fork
+    if (Fork() == 0) { /* Child */   // 새로운 자식 프로세스를 fork
         /* Real server would set all CGI vars here */
         setenv("QUERY_STRING", cgiargs, 1);         // 자식은 query string 환경변수를 요청 URI의 CGI 인자들로 초기화한다.
         Dup2(fd, STDOUT_FILENO);  /* Redirect stdout to client */    // 자식은 자식의 표준 출력을 연결 파일 식별자로 재지정
