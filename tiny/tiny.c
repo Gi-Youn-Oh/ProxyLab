@@ -14,9 +14,9 @@ int parse_uri(char *uri, char *filename, char *cgiargs);
 void serve_static(int fd, char *filename, int filesize);
 void get_filetype(char *filename, char *filetype);
 void serve_dynamic(int fd, char *filename, char *cgiargs);
-void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
-                 char *longmsg);
+void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 
+// 반복실행 서버 
 int main(int argc, char **argv) {
   int listenfd, connfd;
   char hostname[MAXLINE], port[MAXLINE];
@@ -29,26 +29,25 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  listenfd = Open_listenfd(argv[1]);
+  listenfd = Open_listenfd(argv[1]); // 듣기 소켓 오픈
   while (1) {
     clientlen = sizeof(clientaddr);
-    connfd = Accept(listenfd, (SA *)&clientaddr,
-                    &clientlen);  // line:netp:tiny:accept
+    connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);  // line:netp:tiny:accept  / 연결 요청 접수
     Getnameinfo((SA *)&clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE,
                 0);
     printf("Accepted connection from (%s, %s)\n", hostname, port);
-    doit(connfd);   // line:netp:tiny:doit
-    Close(connfd);  // line:netp:tiny:close
+    doit(connfd);   // line:netp:tiny:doit          // 트랜잭션 수행
+    Close(connfd);  // line:netp:tiny:close         // 연결 닫기 
   }
 }
 
 
-void doit(int fd)
+void doit(int fd)  // HTTP 트랜잭션 수행
 {
     int is_static;
     struct stat sbuf;
-    char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
-    char filename[MAXLINE], cgiargs[MAXLINE];
+    char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];   // URI 로 확인 및 HTTP 버전 확인
+    char filename[MAXLINE], cgiargs[MAXLINE];    // common gateway interface 동적파일
     rio_t rio;
 
     /* Read request line and headers*/
@@ -57,7 +56,7 @@ void doit(int fd)
     Rio_readlineb(&rio, buf, MAXLINE);
     printf("Request headers:\n");
     printf("%s", buf);
-    sscanf(buf, "%s %s %s", method, uri, version);
+    sscanf(buf, "%s %s %s", method, uri, version); // sscanf = 입력대상이 표준 입력이 아닌 매개변수로 전달되는 문자열 버퍼
     if(strcasecmp(method, "GET")){ // 만일 클라이언트가 GET 이 아닌 다른 메소드를 요청하면 에러메시지를 보내고 main루틴으로 돌아온다.
         clienterror(fd, method, "501", "Not implemented", "Tiny dose not implement this method");
         return;
