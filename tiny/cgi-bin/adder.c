@@ -14,23 +14,21 @@ int main(void){
     int n1=0, n2=0;
 
     /* Extract the two arguments */
-    // if ((buf = getenv("QUERY_STRING")) != NULL) {
-	//     p = strchr(buf, '&');
-	//     *p = '\0';
-	//     strcpy(arg1, buf);
-	//     strcpy(arg2, p+1);
-	//     n1 = atoi(arg1);
-	//     n2 = atoi(arg2);
-    // }
-    
+    if ((buf = getenv("QUERY_STRING")) != NULL) {
+	    p = strchr(buf, '&');
+	    *p = '\0';
+	    strcpy(arg1, buf);
+	    strcpy(arg2, p+1);
+	    n1 = atoi(arg1);
+	    n2 = atoi(arg2);
+    }
+
     /* Extract the two arguments */
     if ((buf = getenv("QUERY_STRING")) != NULL){
-        p = strchr(buf, '&');
-        *p = '\0'; // NULL 이랑 같은 표현
-        sscanf(buf, "num1=%d", &n1);
-        sscnaf(p+1, "num2=%d", &n2 );
-        n1 = atoi(arg1);
-        n2 = atoi(arg2);
+        p = strchr(buf, '&'); 
+        *p = '\0'; // NULL 이랑 같은 표현  / &2 = NULL;
+        sscanf(buf, "num1=%d", &n1);    // 1&2 buf = 1
+        sscnaf(p+1, "num2=%d", &n2);    // 1&2 p+1 = 2
     }
 
     /* Make the response body */
