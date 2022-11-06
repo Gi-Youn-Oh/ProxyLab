@@ -17,8 +17,8 @@ int main(void){
     if ((buf = getenv("QUERY_STRING")) != NULL){
         p = strchr(buf, '&');
         *p = '\0'; // NULL 이랑 같은 표현
-        strcpy(arg1, buf);
-        strcpy(arg2, p+1);
+        sscanf(buf, "num1=%d", &n1);
+        sscnaf(p+1, "num2=%d", &n2 );
         n1 = atoi(arg1);
         n2 = atoi(arg2);
     }
